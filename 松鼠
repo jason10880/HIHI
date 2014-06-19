@@ -1,0 +1,339 @@
+
+import random, sys, time, math, pygame
+from pygame.locals import *
+
+每秒顯示張數 = 30 
+螢幕寬度 = 640 
+螢幕高度 = 480
+一半_螢幕寬度 = int(螢幕寬度 / 2)
+一半_螢幕高度 = int(螢幕高度 / 2)
+
+草色 = (24, 255, 0)
+白色 = (255, 255, 255)
+紅色 = (255, 0, 0)
+
+相機黑 = 90     
+移動率 = 9        
+跳動率 = 6      
+跳動高度 = 30
+開始大小 = 25    
+贏大小= 300       
+贏時間 = 2     
+機機時間 = 4    
+最大治癒 = 3       
+
+草數字 = 80        
+松鼠數字 = 30  
+松鼠最小速度 = 3
+松鼠最大速度 = 7 
+這什麼 = 2   
+LEFT = 'left'
+RIGHT = 'right'
+
+
+def main():
+    global 每秒顯示張數時鐘 , 展示個, 逼欸欸死,左圖片, 右圖片, 草圖片
+
+    pygame.init()
+    每秒顯示張數時鐘 = pygame.time.Clock()
+    pygame.display.set_icon(pygame.image.load('gameicon.png'))
+    展示個 = pygame.display.set_mode((螢幕寬度, 螢幕高度))
+    pygame.display.set_caption('Squirrel Eat Squirrel')
+    逼欸欸死 = pygame.font.Font('freesansbold.ttf', 32)
+
+    左圖片 = pygame.image.load('squirrel.png')
+    右圖片 = pygame.transform.flip(左圖片, True, False)
+    草圖片 = []
+    for i in range(1, 5):
+        草圖片.append(pygame.image.load('grass%s.png' % i))
+
+    while True:
+        開始遊戲嚕()
+
+
+def 開始遊戲嚕():
+    
+    遊戲模式 = False  
+    開始的時間 = 0 
+    機機模式 = False     
+    機機開始時間 = 0     
+    贏的模式 = False
+
+    機機衝浪 = 逼欸欸死.render('Game Over', True, 白色)
+    機機雷克特 = 機機衝浪.get_rect()
+    機機雷克特.center = (一半_螢幕寬度, 一半_螢幕高度)
+
+    贏衝浪 = 逼欸欸死.render('你已經取得歐米茄松鼠!', True, 白色)
+    贏雷克特 = 贏衝浪.get_rect()
+    贏雷克特.center = (一半_螢幕寬度, 一半_螢幕高度)
+
+    贏衝浪2 = 逼欸欸死.render('(Press "r" to restart.)', True, 白色)
+    贏雷克特2 = 贏衝浪2.get_rect()
+    贏雷克特2.center = (一半_螢幕寬度, 一半_螢幕高度 + 30)
+
+    相機欸克斯 = 0
+    相機歪一 = 0
+
+    草歐歐 = []    
+    松鼠歐歐 = [] 
+    玩家歐歐 = {'surface': pygame.transform.scale(左圖片, (開始大小, 開始大小)),
+                 'facing': LEFT,
+                 'size': 開始大小,
+                 'x': 一半_螢幕寬度,
+                 'y': 一半_螢幕高度,
+                 'bounce':0,
+                 'health': 最大治癒}
+
+    左移動  = False
+    右移動 = False
+    上移動    = False
+    下移動  = False
+
+
+    for i in range(10):
+        草歐歐.append(makeNewGrass(相機欸克斯, 相機歪一))
+        草歐歐[i]['x'] = random.randint(0, 螢幕寬度)
+        草歐歐[i]['y'] = random.randint(0, 螢幕高度)
+
+    while True: 
+        if 遊戲模式 and time.time() - 開始的時間 > 贏時間:
+            遊戲模式 = False
+
+        for sObj in 松鼠歐歐:
+            sObj['x'] += sObj['movex']
+            sObj['y'] += sObj['movey']
+            sObj['bounce'] += 1
+            if sObj['bounce'] > sObj['跳動率']:
+                sObj['bounce'] = 0 
+
+            if random.randint(0, 99) < 這什麼:
+                sObj['movex'] = 取得隨機勝利()
+                sObj['movey'] = 取得隨機勝利()
+                if sObj['movex'] > 0: 
+                    sObj['surface'] = pygame.transform.scale(右圖片, (sObj['width'], sObj['height']))
+                else: 
+                    sObj['surface'] = pygame.transform.scale(左圖片, (sObj['width'], sObj['height']))
+
+
+        for i in range(len(草歐歐) - 1, -1, -1):
+            if 區域(相機欸克斯, 相機歪一, 草歐歐[i]):
+                del 草歐歐[i]
+        for i in range(len(松鼠歐歐) - 1, -1, -1):
+            if 區域(相機欸克斯, 相機歪一, 松鼠歐歐[i]):
+                del 松鼠歐歐[i]
+
+        while len(草歐歐) < 草數字:
+            草歐歐.append(makeNewGrass(相機欸克斯, 相機歪一))
+        while len(松鼠歐歐) < 松鼠數字:
+            松鼠歐歐.append(新的松鼠(相機欸克斯, 相機歪一))
+
+        playerCenterx = 玩家歐歐['x'] + int(玩家歐歐['size'] / 2)
+        playerCentery = 玩家歐歐['y'] + int(玩家歐歐['size'] / 2)
+        if (相機欸克斯 + 一半_螢幕寬度) - playerCenterx > 相機黑:
+            相機欸克斯 = playerCenterx + 相機黑 - 一半_螢幕寬度
+        elif playerCenterx - (相機欸克斯 + 一半_螢幕寬度) > 相機黑:
+            相機欸克斯 = playerCenterx - 相機黑 - 一半_螢幕寬度
+        if (相機歪一 + 一半_螢幕高度) - playerCentery > 相機黑:
+            相機歪一 = playerCentery + 相機黑 - 一半_螢幕高度
+        elif playerCentery - (相機歪一 + 一半_螢幕高度) > 相機黑:
+            相機歪一 = playerCentery - 相機黑 - 一半_螢幕高度
+
+        展示個.fill(草色)
+
+        for gObj in 草歐歐:
+            gRect = pygame.Rect( (gObj['x'] - 相機欸克斯,
+                                  gObj['y'] - 相機歪一,
+                                  gObj['width'],
+                                  gObj['height']) )
+            展示個.blit(草圖片[gObj['grassImage']], gRect)
+
+
+        for sObj in 松鼠歐歐:
+            sObj['rect'] = pygame.Rect( (sObj['x'] - 相機欸克斯,
+                                         sObj['y'] - 相機歪一 - 取得跳躍(sObj['bounce'], sObj['跳動率'], sObj['跳動高度']),
+                                         sObj['width'],
+                                         sObj['height']) )
+            展示個.blit(sObj['surface'], sObj['rect'])
+
+
+        flashIsOn = round(time.time(), 1) * 10 % 2 == 1
+        if not 機機模式 and not (遊戲模式 and flashIsOn):
+            玩家歐歐['rect'] = pygame.Rect( (玩家歐歐['x'] - 相機欸克斯,
+                                              玩家歐歐['y'] - 相機歪一 - 取得跳躍(玩家歐歐['bounce'], 跳動率, 跳動高度),
+                                              玩家歐歐['size'],
+                                              玩家歐歐['size']) )
+            展示個.blit(玩家歐歐['surface'], 玩家歐歐['rect'])
+
+
+        drawHealthMeter(玩家歐歐['health'])
+
+        for event in pygame.event.get(): 
+            if event.type == QUIT:
+                terminate()
+
+            elif event.type == KEYDOWN:
+                if event.key in (K_UP, K_w):
+                    下移動 = False
+                    上移動 = True
+                elif event.key in (K_DOWN, K_s):
+                    上移動 = False
+                    下移動 = True
+                elif event.key in (K_LEFT, K_a):
+                    右移動 = False
+                    左移動 = True
+                    if 玩家歐歐['facing'] != LEFT: 
+                        玩家歐歐['surface'] = pygame.transform.scale(左圖片, (玩家歐歐['size'], 玩家歐歐['size']))
+                    玩家歐歐['facing'] = LEFT
+                elif event.key in (K_RIGHT, K_d):
+                    左移動 = False
+                    右移動 = True
+                    if 玩家歐歐['facing'] != RIGHT: 
+                        玩家歐歐['surface'] = pygame.transform.scale(右圖片, (玩家歐歐['size'], 玩家歐歐['size']))
+                    玩家歐歐['facing'] = RIGHT
+                elif 贏的模式 and event.key == K_r:
+                    return
+
+            elif event.type == KEYUP:
+             
+                if event.key in (K_LEFT, K_a):
+                    左移動 = False
+                elif event.key in (K_RIGHT, K_d):
+                    右移動 = False
+                elif event.key in (K_UP, K_w):
+                    上移動 = False
+                elif event.key in (K_DOWN, K_s):
+                    下移動 = False
+
+                elif event.key == K_ESCAPE:
+                    terminate()
+
+        if not 機機模式:
+           
+            if 左移動:
+                玩家歐歐['x'] -= 移動率
+            if 右移動:
+                玩家歐歐['x'] += 移動率
+            if 上移動:
+                玩家歐歐['y'] -= 移動率
+            if 下移動:
+                玩家歐歐['y'] += 移動率
+
+            if (左移動 or 右移動 or 上移動 or 下移動) or 玩家歐歐['bounce'] != 0:
+                玩家歐歐['bounce'] += 1
+
+            if 玩家歐歐['bounce'] > 跳動率:
+                玩家歐歐['bounce'] = 0
+            
+            for i in range(len(松鼠歐歐)-1, -1, -1):
+                sqObj = 松鼠歐歐[i]
+                if 'rect' in sqObj and 玩家歐歐['rect'].colliderect(sqObj['rect']):
+
+                    if sqObj['width'] * sqObj['height'] <= 玩家歐歐['size']**2:
+                      
+                        玩家歐歐['size'] += int( (sqObj['width'] * sqObj['height'])**0.2 ) + 1
+                        del 松鼠歐歐[i]
+
+                        if 玩家歐歐['facing'] == LEFT:
+                            玩家歐歐['surface'] = pygame.transform.scale(左圖片, (玩家歐歐['size'], 玩家歐歐['size']))
+                        if 玩家歐歐['facing'] == RIGHT:
+                            玩家歐歐['surface'] = pygame.transform.scale(右圖片, (玩家歐歐['size'], 玩家歐歐['size']))
+
+                        if 玩家歐歐['size'] > 贏大小:
+                            贏的模式 = True
+
+                    elif not 遊戲模式:
+                        遊戲模式 = True
+                        開始的時間 = time.time()
+                        玩家歐歐['health'] -= 1
+                        if 玩家歐歐['health'] == 0:
+                            機機模式 = True 
+                            機機開始時間 = time.time()
+        else:
+            
+            展示個.blit(機機衝浪, 機機雷克特)
+            if time.time() - 機機開始時間 > 機機時間:
+                return 
+        if 贏的模式:
+            展示個.blit(贏衝浪, 贏雷克特)
+            展示個.blit(贏衝浪2, 贏雷克特2)
+
+        pygame.display.update()
+        每秒顯示張數時鐘.tick(每秒顯示張數)
+
+
+
+
+def drawHealthMeter(currentHealth):
+    for i in range(currentHealth): 
+        pygame.draw.rect(展示個, 紅色,   (15, 5 + (10 * 最大治癒) - i * 10, 20, 10))
+    for i in range(最大治癒): 
+        pygame.draw.rect(展示個, 白色, (15, 5 + (10 * 最大治癒) - i * 10, 20, 10), 1)
+
+
+def terminate():
+    pygame.quit()
+    sys.exit()
+
+
+def 取得跳躍(currentBounce, 跳動率, 跳動高度):
+
+    return int(math.sin( (math.pi / float(跳動率)) * currentBounce ) * 跳動高度)
+
+def 取得隨機勝利():
+    速度 = random.randint(松鼠最小速度, 松鼠最大速度)
+    if random.randint(0, 1) == 0:
+        return 速度
+    else:
+        return -速度
+
+
+def 取得隨機相機(相機欸克斯, 相機歪一, 歐歐寬度, 歐歐高度):
+   
+    相機雷克特 = pygame.Rect(相機欸克斯, 相機歪一, 螢幕寬度, 螢幕高度)
+    while True:
+        x = random.randint(相機欸克斯 - 螢幕寬度, 相機欸克斯 + (2 * 螢幕寬度))
+        y = random.randint(相機歪一 - 螢幕高度, 相機歪一 + (2 * 螢幕高度))
+        歐歐雷克特 = pygame.Rect(x, y, 歐歐寬度, 歐歐高度)
+        if not 歐歐雷克特.colliderect(相機雷克特):
+            return x, y
+
+
+def 新的松鼠(相機欸克斯, 相機歪一):
+    sq = {}
+    一般大小 = random.randint(5, 25)
+    多重玩家 = random.randint(1, 3)
+    sq['width']  = (一般大小 + random.randint(0, 10)) * 多重玩家
+    sq['height'] = (一般大小 + random.randint(0, 10)) * 多重玩家
+    sq['x'], sq['y'] = 取得隨機相機(相機欸克斯, 相機歪一, sq['width'], sq['height'])
+    sq['movex'] = 取得隨機勝利()
+    sq['movey'] = 取得隨機勝利()
+    if sq['movex'] < 0: 
+        sq['surface'] = pygame.transform.scale(左圖片, (sq['width'], sq['height']))
+    else: 
+        sq['surface'] = pygame.transform.scale(右圖片, (sq['width'], sq['height']))
+    sq['bounce'] = 0
+    sq['跳動率'] = random.randint(10, 18)
+    sq['跳動高度'] = random.randint(10, 50)
+    return sq
+
+
+def makeNewGrass(相機欸克斯, 相機歪一):
+    gr = {}
+    gr['grassImage'] = random.randint(0, len(草圖片) - 1)
+    gr['width']  = 草圖片[0].get_width()
+    gr['height'] = 草圖片[0].get_height()
+    gr['x'], gr['y'] = 取得隨機相機(相機欸克斯, 相機歪一, gr['width'], gr['height'])
+    gr['rect'] = pygame.Rect( (gr['x'], gr['y'], gr['width'], gr['height']) )
+    return gr
+
+
+def 區域(相機欸克斯, 相機歪一, obj):
+    左邊界 = 相機欸克斯 - 螢幕寬度
+    上邊界 = 相機歪一 - 螢幕高度
+    邊界雷克特 = pygame.Rect(左邊界, 上邊界, 螢幕寬度 * 3, 螢幕高度 * 3)
+    歐歐雷克特 = pygame.Rect(obj['x'], obj['y'], obj['width'], obj['height'])
+    return not 邊界雷克特.colliderect(歐歐雷克特)
+
+
+if __name__ == '__main__':
+    main()
